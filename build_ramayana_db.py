@@ -7,32 +7,40 @@ BASE_URL = "https://ramayana.hindbiswas.com/api"
 DB_NAME = "ramayana.db"
 
 
-def api_get(url, retries=3):
+def api_get(url, retries=5):
+
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+    }
 
     for attempt in range(retries):
 
         try:
             response = requests.get(
                 url,
-                timeout=30
+                headers=headers,
+                timeout=60
+            )
+
+            print(
+                "Request:",
+                url,
+                "Status:",
+                response.status_code
             )
 
             if response.status_code == 200:
                 return response.json()
 
-            print(
-                "HTTP Error:",
-                response.status_code
-            )
-
         except Exception as e:
             print(
-                "Retry",
+                "Attempt failed:",
                 attempt + 1,
                 e
             )
 
-        time.sleep(2)
+        time.sleep(5)
 
     return None
 
