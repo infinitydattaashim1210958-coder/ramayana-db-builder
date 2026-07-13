@@ -38,3 +38,7 @@ jobs:
       with:
         name: ramayana-database
         path: ramayana.db
+
+    - name: Test API
+  run: |
+    python test_api.py
