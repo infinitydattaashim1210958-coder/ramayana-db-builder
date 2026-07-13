@@ -1,0 +1,36 @@
+name: Build SQLite Database
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+
+      - name: Create Database
+        run: |
+          sqlite3 ramayana.db < schema.sql
+
+      - name: Check Tables
+        run: |
+          sqlite3 ramayana.db ".tables"
+
+      - name: Database Information
+        run: |
+          sqlite3 ramayana.db "PRAGMA integrity_check;"
+          sqlite3 ramayana.db "SELECT name FROM sqlite_master WHERE type='table';"
+
+      - name: Upload Database
+        uses: actions/upload-artifact@v4
+        with:
+          name: ramayana-database
+          path: ramayana.db
