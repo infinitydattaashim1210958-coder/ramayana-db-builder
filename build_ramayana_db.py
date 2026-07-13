@@ -1,34 +1,49 @@
 import requests
 import sqlite3
 import time
-import os
+
 
 BASE_URL = "https://ramayana.hindbiswas.com/api"
 DB_NAME = "ramayana.db"
 
 
 def api_get(url, retries=3):
+
     for attempt in range(retries):
+
         try:
-            r = requests.get(url, timeout=30)
+            response = requests.get(
+                url,
+                timeout=30
+            )
 
-            if r.status_code == 200:
-                return r.json()
+            if response.status_code == 200:
+                return response.json()
 
-            print("HTTP Error:", r.status_code)
+            print(
+                "HTTP Error:",
+                response.status_code
+            )
 
         except Exception as e:
-            print("Retry:", attempt + 1, e)
+            print(
+                "Retry",
+                attempt + 1,
+                e
+            )
 
         time.sleep(2)
 
     return None
 
 
+
 def create_db():
 
     conn = sqlite3.connect(DB_NAME)
+
     cur = conn.cursor()
+
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS kandas (
@@ -39,14 +54,18 @@ def create_db():
     )
     """)
 
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS sargas (
         id INTEGER PRIMARY KEY,
         kanda_id INTEGER,
         title TEXT,
-        chapter INTEGER
+        chapter INTEGER,
+        FOREIGN KEY(kanda_id)
+        REFERENCES kandas(id)
     )
     """)
+
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS shlokas (
@@ -55,9 +74,12 @@ def create_db():
         sanskrit TEXT,
         pratipada TEXT,
         translation TEXT,
-        explanation TEXT
+        explanation TEXT,
+        FOREIGN KEY(sarga_id)
+        REFERENCES sargas(id)
     )
     """)
+
 
     conn.commit()
 
@@ -65,53 +87,53 @@ def create_db():
 
 
 
-def insert_kanda(conn, k):
+def insert_kanda(conn, data):
 
     conn.execute("""
     INSERT OR REPLACE INTO kandas
     VALUES (?,?,?,?)
     """,
     (
-        k["id"],
-        k["name"],
-        k.get("english_name"),
-        k.get("sarga_count")
+        data["id"],
+        data["name"],
+        data.get("english_name"),
+        data.get("sarga_count")
     ))
 
     conn.commit()
 
 
 
-def insert_sarga(conn, kanda_id, s):
+def insert_sarga(conn, kanda_id, data):
 
     conn.execute("""
     INSERT OR REPLACE INTO sargas
     VALUES (?,?,?,?)
     """,
     (
-        s["id"],
+        data["id"],
         kanda_id,
-        s["name"],
-        s.get("chapter")
+        data.get("name"),
+        data.get("chapter")
     ))
 
     conn.commit()
 
 
 
-def insert_shloka(conn, sarga_id, sh):
+def insert_shloka(conn, sarga_id, data):
 
     conn.execute("""
     INSERT OR REPLACE INTO shlokas
     VALUES (?,?,?,?,?,?)
     """,
     (
-        sh["id"],
+        data["id"],
         sarga_id,
-        sh.get("sanskrit",""),
-        sh.get("pratipada",""),
-        sh.get("tat",""),
-        sh.get("comment","")
+        data.get("sanskrit", ""),
+        data.get("pratipada", ""),
+        data.get("tat", ""),
+        data.get("comment", "")
     ))
 
     conn.commit()
@@ -121,97 +143,149 @@ def insert_shloka(conn, sarga_id, sh):
 def build():
 
     print("Creating database...")
+
     conn = create_db()
 
 
-    print("Fetching Kandas...")
+    print("Downloading Kandas...")
 
     kandas = api_get(
-        BASE_URL + "/kandas"
+        f"{BASE_URL}/kandas"
     )
 
 
     if not kandas:
-        print("Kanda loading failed")
+
+        print("Kanda download failed")
+
         return
 
 
 
+    total_sargas = 0
     total_shlokas = 0
+
 
 
     for kanda in kandas:
 
-        kid = kanda["id"]
+
+        kanda_id = kanda["id"]
+
 
         print(
             "\nKanda:",
-            kid,
+            kanda_id,
             kanda["name"]
         )
 
 
-        data = api_get(
-            f"{BASE_URL}/kanda/{kid}?with_sarga=1"
+        kanda_data = api_get(
+            f"{BASE_URL}/kanda/{kanda_id}?with_sarga=1"
         )
 
 
-        if not data:
+        if not kanda_data:
+
             continue
 
 
-        insert_kanda(conn,data)
+
+        insert_kanda(
+            conn,
+            kanda_data
+        )
 
 
-        sargas = data.get("sargas",[])
+        sargas = kanda_data.get(
+            "sargas",
+            []
+        )
 
 
-        for index,sarga in enumerate(sargas,1):
+        for index, sarga in enumerate(
+            sargas,
+            start=1
+        ):
 
-            sid = sarga["id"]
+
+            sarga_id = sarga["id"]
+
 
             print(
-                f"  Sarga {index}/{len(sargas)} : {sid}"
+                f"Sarga {index}/{len(sargas)} ID:{sarga_id}"
             )
 
 
             insert_sarga(
                 conn,
-                kid,
+                kanda_id,
                 sarga
             )
 
 
-            shloka = api_get(
-                f"{BASE_URL}/shloka/{sid}"
+            total_sargas += 1
+
+
+
+            # Get all shlokas of this sarga
+
+            sarga_data = api_get(
+                f"{BASE_URL}/sarga/{sarga_id}?with_shloka=1"
             )
 
 
-            if shloka:
+            if sarga_data:
 
-                insert_shloka(
-                    conn,
-                    sid,
-                    shloka
+
+                shlokas = sarga_data.get(
+                    "shlokas",
+                    []
                 )
 
-                total_shlokas += 1
+
+                for shloka in shlokas:
 
 
-            time.sleep(0.15)
+                    insert_shloka(
+                        conn,
+                        sarga_id,
+                        shloka
+                    )
+
+
+                    total_shlokas += 1
+
+
+
+            time.sleep(0.2)
 
 
 
     conn.close()
 
 
-    print("\n====================")
-    print("BUILD COMPLETE")
-    print("====================")
-    print("Database:", DB_NAME)
-    print("Shlokas saved:", total_shlokas)
+    print("\n==========================")
+    print("RAMAYANA DATABASE COMPLETE")
+    print("==========================")
+
+    print(
+        "Database:",
+        DB_NAME
+    )
+
+    print(
+        "Total Sargas:",
+        total_sargas
+    )
+
+    print(
+        "Total Shlokas:",
+        total_shlokas
+    )
 
 
 
 if __name__ == "__main__":
+
     build()
