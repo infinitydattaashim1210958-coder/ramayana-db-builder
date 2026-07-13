@@ -6,7 +6,7 @@ cur = conn.cursor()
 cur.execute("""
 CREATE TABLE IF NOT EXISTS kandas (
     id INTEGER PRIMARY KEY,
-    name TEXT,
+    name TEXT NOT NULL,
     english_name TEXT,
     total_sargas INTEGER
 )
@@ -17,24 +17,24 @@ CREATE TABLE IF NOT EXISTS sargas (
     id INTEGER PRIMARY KEY,
     kanda_id INTEGER,
     title TEXT,
-    total_shlokas INTEGER
+    chapter INTEGER,
+    FOREIGN KEY(kanda_id) REFERENCES kandas(id)
 )
 """)
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS shlokas (
     id INTEGER PRIMARY KEY,
-    kanda_id INTEGER,
     sarga_id INTEGER,
-    shloka_no INTEGER,
     sanskrit TEXT,
-    transliteration TEXT,
+    pratipada TEXT,
     translation TEXT,
-    explanation TEXT
+    explanation TEXT,
+    FOREIGN KEY(sarga_id) REFERENCES sargas(id)
 )
 """)
 
 conn.commit()
 conn.close()
 
-print("SQLite database created successfully.")
+print("Ramayana SQLite database created successfully.")
