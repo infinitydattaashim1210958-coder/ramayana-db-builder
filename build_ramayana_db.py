@@ -9,11 +9,12 @@ DB_NAME = "ramayana.db"
 
 def api_get(url, retries=5):
 
-   headers = {
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "*/*",
-    "Content-Type": "application/json"
-}
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "*/*",
+        "Content-Type": "application/json"
+    }
+
     for attempt in range(retries):
 
         try:
@@ -43,8 +44,6 @@ def api_get(url, retries=5):
         time.sleep(5)
 
     return None
-
-
 
 def create_db():
 
