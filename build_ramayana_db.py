@@ -147,7 +147,6 @@ def insert_shloka(conn, sarga_id, data):
     conn.commit()
 
 
-
 def build():
 
     print("Creating database...")
@@ -155,46 +154,31 @@ def build():
     conn = create_db()
 
 
-   print("Using Kanda list...")
+    print("Using Kanda list...")
 
-kandas = [
-    {
-        "id": 1
-    },
-    {
-        "id": 2
-    },
-    {
-        "id": 3
-    },
-    {
-        "id": 4
-    },
-    {
-        "id": 5
-    },
-    {
-        "id": 6
-    }
-]
+    kandas = [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5},
+        {"id": 6}
+    ]
 
 
     total_sargas = 0
     total_shlokas = 0
 
 
-
     for kanda in kandas:
-
 
         kanda_id = kanda["id"]
 
-
         print(
             "\nKanda:",
-            kanda_id,
-            kanda["name"]
-        )
+            kanda_id
+    )
+
 
 
         kanda_data = api_get(
